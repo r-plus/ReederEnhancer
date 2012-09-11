@@ -1,3 +1,0 @@
-[submodule "PullToRefreshView"]
-	path = PullToRefreshView
-	url = git://github.com/chpwn/PullToRefreshView.git
