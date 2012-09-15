@@ -39,6 +39,14 @@
         <key>cell</key>
         <string>PSGroupCell</string>
         <key>label</key>
+        <string>Notification</string>
+        <key>footerText</key>
+        <string>PostNotification when finished images cache. Please set from iOS default "Notifications" section.</string>
+      </dict>
+      <dict>
+        <key>cell</key>
+        <string>PSGroupCell</string>
+        <key>label</key>
         <string>Root View</string>
       </dict>
       <dict>

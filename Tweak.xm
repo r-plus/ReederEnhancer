@@ -78,7 +78,7 @@ static inline void UpdatePullPropertys() {
       recursiveSearchAndHide(w);
 }
 
-static void UpdateRootPull() {
+static inline void UpdateRootPull() {
   rootPull.threshold = rootPullViewTopThreshold;
   [rootPull hideAllAroundPullViewIfNeed:rootPullViewTopIsEnabled ? NO : YES];
 }
@@ -109,6 +109,9 @@ static inline void DoAction(id self, int actionNumber, UIView *view) {
   [view performSelector:@selector(finishedLoading) withObject:nil afterDelay:delay];
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// Pull to
+/////////////////////////////////////////////////////////////////////////////
 %hook SubscriptionsViewController// : FetchedTableViewController : TableViewController : UITableViewController
 - (void)viewDidAppear:(BOOL)animate
 {
@@ -124,6 +127,7 @@ static inline void DoAction(id self, int actionNumber, UIView *view) {
     }
   }
 }
+
 - (void)viewDidLoad
 {
   %orig;
@@ -146,15 +150,8 @@ static inline void DoAction(id self, int actionNumber, UIView *view) {
     [rootPull hideAllAroundPullViewIfNeed:rootPullViewTopIsEnabled ? NO : YES];
   }
 }
-
-// NSConcreteNotification {name = RKServiceConnectorDidSyncNotification; object = <RKServiceGoogleReader: >}]
-// Probably this method called when synced articles without images.
-/*- (void)didSync:(id)sync*/
-/*{*/
-/*  %log;*/
-/*  %orig;*/
-/*}*/
 %end
+
 %hook ItemsViewController
 - (void)viewDidLoad
 {
@@ -185,6 +182,11 @@ static inline void DoAction(id self, int actionNumber, UIView *view) {
 /*  %log;*/
 /*  %orig;*/
 /*}*/
+/*-(void)done:(id)arg1*/
+/*{*/
+/*  %log;*/
+/*  %orig;*/
+/*}*/
 /*%end*/
 /*%hook RKServiceConnector*/
 /*-(void)syncDidSucceed*/
@@ -203,34 +205,52 @@ static inline void DoAction(id self, int actionNumber, UIView *view) {
 /*  %orig;*/
 /*}*/
 /*%end*/
-/*%hook RKUser*/
-/*- (void)setSyncStatusText:(NSString *)text*/
-/*{*/
-/*  %log;*/
-/*  NSLog(@"-----text = %@", text);*/
 
-/*  if ([text hasPrefix:@"Caching Images"]) {*/
-/*    UILocalNotification *notification = [[UILocalNotification alloc] init];*/
-/*    [notification setTimeZone:[NSTimeZone localTimeZone]];*/
-/*    NSDate *date = [NSDate date];*/
-/*    NSDateFormatter *dateFormatter = [[[NSDateFormatter alloc] init] autorelease];*/
-/*    [dateFormatter setDateFormat:@"Y/M/d H:m:ss Z"];*/
-/*    [notification setAlertBody:[NSString stringWithFormat:@"Synced at %@", [dateFormatter stringFromDate:date]]];*/
-/*    [notification setSoundName:UILocalNotificationDefaultSoundName];*/
-/*    [notification setAlertAction:@"Open"];*/
-/*    [[UIApplication sharedApplication] presentLocalNotificationNow:notification];*/
-/*    [notification release];*/
-/*  }*/
+/////////////////////////////////////////////////////////////////////////////
+// Sync Notification
+/////////////////////////////////////////////////////////////////////////////
+%hook RKUser
+static NSString *previousSyncStatusText;
+- (void)setSyncStatusText:(NSString *)text
+{
+  %log;
+  NSLog(@"-----text = %@", text);
 
-/*  %orig;*/
-/*}*/
+  if (!text && [previousSyncStatusText hasPrefix:@"Caching"]) {
+    UILocalNotification *notification = [[UILocalNotification alloc] init];
+    [notification setTimeZone:[NSTimeZone localTimeZone]];
+    NSDate *date = [NSDate date];
+    NSDateFormatter *dateFormatter = [[[NSDateFormatter alloc] init] autorelease];
+    [dateFormatter setDateFormat:@"Y/M/d H:m:ss Z"];
+    [notification setAlertBody:[NSString stringWithFormat:@"Synced at %@", [dateFormatter stringFromDate:date]]];
+    [notification setSoundName:UILocalNotificationDefaultSoundName];
+    [notification setAlertAction:@"Open"];
+    [[UIApplication sharedApplication] presentLocalNotificationNow:notification];
+    [notification release];
+  }
+  previousSyncStatusText = text;
+
+  %orig;
+}
 /*- (void)setLastSyncDate:(double)date*/
 /*{*/
 /*  %log;*/
 /*  %orig;*/
 /*}*/
+%end
+/*%hook SyncButtonItem*/
+/*-(void)setSyncing:(BOOL)arg1*/
+/*{*/
+/*  %log;*/
+/*  %orig;*/
+/*}*/
 /*%end*/
+
 /*%hook RKServiceTwitter*/
+
+/////////////////////////////////////////////////////////////////////////////
+// TweetFormatter
+/////////////////////////////////////////////////////////////////////////////
 @interface RKShareObject : NSObject
 + (id)shareObjectWithItem:(id)item;
 - (id)item;
@@ -268,7 +288,7 @@ static BOOL tweetFormatterIsEnabled;
 
 static void LoadSettings()
 {	
-	NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:PREF_PATH];
+  NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:PREF_PATH];
   id existTweetFormatterIsEnabled = [dict objectForKey:@"TweetFormatterIsEnabled"];
   tweetFormatterIsEnabled = existTweetFormatterIsEnabled ? [existTweetFormatterIsEnabled boolValue] : YES;
 
@@ -307,7 +327,7 @@ static void PostNotification(CFNotificationCenterRef center, void *observer, CFS
 
 %ctor {
   NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, PostNotification, CFSTR("jp.r-plus.PullToSyncForReeder3.settingschanged"), NULL, CFNotificationSuspensionBehaviorCoalesce);
-	LoadSettings();
-	[pool release];
+  CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, PostNotification, CFSTR("jp.r-plus.PullToSyncForReeder3.settingschanged"), NULL, CFNotificationSuspensionBehaviorCoalesce);
+  LoadSettings();
+  [pool release];
 }
