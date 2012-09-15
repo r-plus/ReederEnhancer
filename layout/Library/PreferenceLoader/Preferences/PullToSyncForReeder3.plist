@@ -41,7 +41,7 @@
         <key>label</key>
         <string>Notification</string>
         <key>footerText</key>
-        <string>PostNotification when finished images cache. Please set from iOS default "Notifications" section.</string>
+        <string>PostNotification when finished images cache unless nothing target image. Please set from iOS default "Notifications" section after initial sync after installing tweak.</string>
       </dict>
       <dict>
         <key>cell</key>
