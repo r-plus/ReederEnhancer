@@ -132,6 +132,7 @@ static inline void DoAction(id self, int actionNumber, UIView *view) {
       AllAroundPullView *pull = [[AllAroundPullView alloc] initWithScrollView:self.tableView position:AllAroundPullViewPositionTop action:^(AllAroundPullView *view){
         DoAction(self, folderPullViewTopAction, view);
       }];
+      pull.threshold = folderPullViewTopThreshold;
       [self.tableView addSubview:pull];
       [pull release];
     }
@@ -140,6 +141,7 @@ static inline void DoAction(id self, int actionNumber, UIView *view) {
       [self sync:nil];
       [view performSelector:@selector(finishedLoading) withObject:nil afterDelay:1.0f];
     }];
+    rootPull.threshold = rootPullViewTopThreshold;
     [self.tableView addSubview:rootPull];
     [rootPull hideAllAroundPullViewIfNeed:rootPullViewTopIsEnabled ? NO : YES];
   }
@@ -162,6 +164,7 @@ static inline void DoAction(id self, int actionNumber, UIView *view) {
     AllAroundPullView *pull = [[AllAroundPullView alloc] initWithScrollView:self.tableView position:AllAroundPullViewPositionTop action:^(AllAroundPullView *view){
       DoAction(self, itemPullViewTopAction, view);
     }];
+    pull.threshold = itemPullViewTopThreshold;
     [self.tableView addSubview:pull];
     [pull release];
   }
@@ -169,6 +172,7 @@ static inline void DoAction(id self, int actionNumber, UIView *view) {
     AllAroundPullView *pull = [[AllAroundPullView alloc] initWithScrollView:self.tableView position:AllAroundPullViewPositionBottom action:^(AllAroundPullView *view){
       DoAction(self, itemPullViewBottomAction, view);
     }];
+    pull.threshold = itemPullViewBottomThreshold;
     [self.tableView addSubview:pull];
     [pull release];
   }
