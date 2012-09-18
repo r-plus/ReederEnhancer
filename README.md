@@ -1,5 +1,5 @@
 # ReederEnhancer
-Add the usefull feature for Reeder v3.x.
+Add the useful feature for Reeder v3.x.
 
 * Pull to action
 * Sync notification
