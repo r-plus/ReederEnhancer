@@ -7,9 +7,9 @@
       <key>cell</key>
       <string>PSLinkCell</string>
       <key>icon</key>
-      <string>PullToSyncForReeder3.png</string>
+      <string>ReederEnhancer.png</string>
       <key>label</key>
-      <string>PullToSyncForReeder3</string>
+      <string>ReederEnhancer</string>
     </dict>
     <key>items</key>
     <array>

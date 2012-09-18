@@ -1,5 +1,5 @@
-Package: jp.r-plus.pulltosyncforreeder3
-Name: PullToSyncForReeder3
+Package: jp.r-plus.reederenhancer
+Name: ReederEnhancer
 Depends: mobilesubstrate, preferenceloader
 Version: 0.0.1
 Architecture: iphoneos-arm
