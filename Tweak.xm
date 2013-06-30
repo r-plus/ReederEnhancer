@@ -1,333 +1,165 @@
-#import "AllAroundPullView/AllAroundPullView.h"
-#define PREF_PATH @"/var/mobile/Library/Preferences/jp.r-plus.pulltosyncforreeder3.plist"
+#import <UIKit/UIKit.h>
+#import <Twitter/TWTweetComposeViewController.h>
+#import <Social/Social.h>
 
-@interface RootViewController : UINavigationController
-@end
-@interface UsersViewController : UITableViewController
--(void)syncAll:(id)arg1;
-@end
-@interface RKStream : NSObject
-@property (nonatomic, assign) BOOL listed;
-@property (nonatomic, assign) BOOL isFolder;
-@end
-@interface SubscriptionsViewController : UITableViewController
-@property (nonatomic,retain) RKStream* folder;
-- (void)sync:(id)arg;
-@end
-@interface ItemsViewController : UITableViewController
--(void)markAllAsRead:(id)arg1;
-@end
-@interface UIView(Fake)
-@property (nonatomic, assign) id delegate;
-@property (nonatomic, assign) float threshold;
-@property (nonatomic, assign) AllAroundPullViewPosition position;
-- (void)hideAllAroundPullViewIfNeed:(BOOL)arg;
-@end
+#define M_TITLE @"_TITLE_"
+#define M_SOURCE @"_SOURCE_"
+#define PREF_PATH @"/var/mobile/Library/Preferences/com.kindadev.reederenhancer.plist"
 
-static AllAroundPullView *rootPull = nil;
+#ifndef kCFCoreFoundationVersionNumber_iOS_5_0
+#define kCFCoreFoundationVersionNumber_iOS_5_0 675.00
+#endif
+#ifndef kCFCoreFoundationVersionNumber_iOS_6_0
+#define kCFCoreFoundationVersionNumber_iOS_6_0 793.00
+#endif
 
-static BOOL rootPullViewTopIsEnabled;
-static BOOL folderPullViewTopIsEnabled;
-static BOOL itemPullViewTopIsEnabled;
-static BOOL itemPullViewBottomIsEnabled;
+static BOOL isRefresh;
+static NSString *previousSyncStatusText;
+static NSString *format;
+static id srcTitle;
+static id title;
+static id url;
 
-static int folderPullViewTopAction;
-static int itemPullViewTopAction;
-static int itemPullViewBottomAction;
-
-static float rootPullViewTopThreshold;
-static float folderPullViewTopThreshold;
-static float itemPullViewTopThreshold;;
-static float itemPullViewBottomThreshold;;
-
-static void recursiveSearchAndHide(UIView *v) {
-  if ([v isMemberOfClass:[AllAroundPullView class]]) {
-    if ([v.superview.delegate isMemberOfClass:%c(SubscriptionsViewController)]) {
-      if ([[v.superview.delegate folder] isFolder]) {
-        // folder top
-        v.threshold = folderPullViewTopThreshold;
-        [v hideAllAroundPullViewIfNeed:folderPullViewTopIsEnabled ? NO : YES];
-      } else {
-        // root top
-        v.threshold = rootPullViewTopThreshold;
-        [v hideAllAroundPullViewIfNeed:rootPullViewTopIsEnabled ? NO : YES];
-      }
-    }
-    if ([v.superview.delegate isMemberOfClass:%c(ItemsViewController)]) {
-      // item
-      if (v.position == AllAroundPullViewPositionTop) {
-        // top
-        v.threshold = itemPullViewTopThreshold;
-        [v hideAllAroundPullViewIfNeed:itemPullViewTopIsEnabled ? NO : YES];
-      } else {
-        // bottom
-        v.threshold = itemPullViewBottomThreshold;
-        [v hideAllAroundPullViewIfNeed:itemPullViewBottomIsEnabled ? NO : YES];
-      }
-    }
-  }
-
-  for (UIView *sv in v.subviews)
-    recursiveSearchAndHide(sv);
-}
-
-static inline void UpdatePullPropertys() {
-  NSArray *windows = [[UIApplication sharedApplication] windows];
-  if (windows)
-    for (UIWindow *w in windows)
-      recursiveSearchAndHide(w);
-}
-
-static inline void UpdateRootPull() {
-  rootPull.threshold = rootPullViewTopThreshold;
-  [rootPull hideAllAroundPullViewIfNeed:rootPullViewTopIsEnabled ? NO : YES];
-}
-
-static inline void DoAction(id self, int actionNumber, UIView *view) {
-  NSTimeInterval delay = 0.0f;
-  switch (actionNumber) {
-    // sync
-    case 0:
-      if ([self isMemberOfClass:%c(SubscriptionsViewController)])
-        [(SubscriptionsViewController *)self sync:nil];
-      else {
-        RootViewController *rvc = (RootViewController *)[self parentViewController];
-        UsersViewController *uvc = MSHookIvar<UsersViewController *>(rvc, "__usersViewController");
-        [uvc syncAll:nil];
-      }
-      delay = 1.0f;
-      break;
-    // markAllAsRead
-    case 1:
-      [(ItemsViewController *)self markAllAsRead:nil];
-      break;
-    // pop
-    case 2:
-      [[self navigationController] popViewControllerAnimated:YES];
-      break;
-  }
-  [view performSelector:@selector(finishedLoading) withObject:nil afterDelay:delay];
-}
-
-/////////////////////////////////////////////////////////////////////////////
-// Pull to
-/////////////////////////////////////////////////////////////////////////////
-%hook SubscriptionsViewController// : FetchedTableViewController : TableViewController : UITableViewController
-- (void)viewDidAppear:(BOOL)animate
+%hook SubscriptionsViewController
+- (BOOL)hasRefreshView
 {
-  %orig;
-  // Purpose: dynamic property change compatible when moved to Root->Folder->Item->Folder
-  //          When moved Item to Folder view, viewDidLoad isnt call.
-  if (self.folder.isFolder) {
-    for (UIView *v in self.tableView.subviews) {
-      if ([v isMemberOfClass:[AllAroundPullView class]]) {
-        v.threshold = folderPullViewTopThreshold;
-        [v hideAllAroundPullViewIfNeed:folderPullViewTopIsEnabled ? NO : YES];
-      }
-    }
-  }
+	if (isRefresh) return NO;
+	else return %orig;
 }
+%end
 
-- (void)viewDidLoad
+%hook TableViewController
+- (BOOL)hasRefreshView
 {
-  %orig;
-  if (self.folder.isFolder) {
-    if (folderPullViewTopIsEnabled) {
-      AllAroundPullView *pull = [[AllAroundPullView alloc] initWithScrollView:self.tableView position:AllAroundPullViewPositionTop action:^(AllAroundPullView *view){
-        DoAction(self, folderPullViewTopAction, view);
-      }];
-      pull.threshold = folderPullViewTopThreshold;
-      [self.tableView addSubview:pull];
-      [pull release];
-    }
-  } else {
-    rootPull = [[AllAroundPullView alloc] initWithScrollView:self.tableView position:AllAroundPullViewPositionTop action:^(AllAroundPullView *view){
-      [self sync:nil];
-      [view performSelector:@selector(finishedLoading) withObject:nil afterDelay:1.0f];
-    }];
-    rootPull.threshold = rootPullViewTopThreshold;
-    [self.tableView addSubview:rootPull];
-    [rootPull hideAllAroundPullViewIfNeed:rootPullViewTopIsEnabled ? NO : YES];
-  }
+	if (isRefresh) return NO;
+	else return %orig;
 }
 %end
 
 %hook ItemsViewController
-- (void)viewDidLoad
+- (BOOL)hasRefreshView
 {
-  %orig;
-
-  if (itemPullViewTopIsEnabled) {
-    AllAroundPullView *pull = [[AllAroundPullView alloc] initWithScrollView:self.tableView position:AllAroundPullViewPositionTop action:^(AllAroundPullView *view){
-      DoAction(self, itemPullViewTopAction, view);
-    }];
-    pull.threshold = itemPullViewTopThreshold;
-    [self.tableView addSubview:pull];
-    [pull release];
-  }
-  if (itemPullViewBottomIsEnabled) {
-    AllAroundPullView *pull = [[AllAroundPullView alloc] initWithScrollView:self.tableView position:AllAroundPullViewPositionBottom action:^(AllAroundPullView *view){
-      DoAction(self, itemPullViewBottomAction, view);
-    }];
-    pull.threshold = itemPullViewBottomThreshold;
-    [self.tableView addSubview:pull];
-    [pull release];
-  }
+	if (isRefresh) return NO;
+	else return %orig;
 }
 %end
 
-/*%hook UsersViewController*/
-/*-(void)didSync:(id)sync*/
-/*{*/
-/*  %log;*/
-/*  %orig;*/
-/*}*/
-/*-(void)done:(id)arg1*/
-/*{*/
-/*  %log;*/
-/*  %orig;*/
-/*}*/
-/*%end*/
-/*%hook RKServiceConnector*/
-/*-(void)syncDidSucceed*/
-/*{*/
-/*  %log;*/
-/*  %orig;*/
-/*}*/
-/*-(void)__syncCache*/
-/*{*/
-/*  %log;*/
-/*  %orig;*/
-/*}*/
-/*-(void)syncCache*/
-/*{*/
-/*  %log;*/
-/*  %orig;*/
-/*}*/
-/*%end*/
-
-/////////////////////////////////////////////////////////////////////////////
-// Sync Notification
-/////////////////////////////////////////////////////////////////////////////
 %hook RKUser
-static NSString *previousSyncStatusText;
 - (void)setSyncStatusText:(NSString *)text
 {
-  %log;
-  NSLog(@"-----text = %@", text);
-
-  if (!text && [previousSyncStatusText hasPrefix:@"Caching"]) {
-    UILocalNotification *notification = [[UILocalNotification alloc] init];
-    [notification setTimeZone:[NSTimeZone localTimeZone]];
-    NSDate *date = [NSDate date];
-    NSDateFormatter *dateFormatter = [[[NSDateFormatter alloc] init] autorelease];
-    [dateFormatter setDateFormat:@"Y/M/d H:m:ss Z"];
-    [notification setAlertBody:[NSString stringWithFormat:@"Synced at %@", [dateFormatter stringFromDate:date]]];
-    [notification setSoundName:UILocalNotificationDefaultSoundName];
-    [notification setAlertAction:@"Open"];
-    [[UIApplication sharedApplication] presentLocalNotificationNow:notification];
-    [notification release];
-  }
-  previousSyncStatusText = text;
-
-  %orig;
+	%log;
+	NSLog(@"-----text = %@", text);
+	if (!text && [previousSyncStatusText hasPrefix:@"Caching"]) {
+		UILocalNotification *notification = [[UILocalNotification alloc] init];
+		[notification setTimeZone:[NSTimeZone localTimeZone]];
+		NSDate *date = [NSDate date];
+		NSDateFormatter *dateFormatter = [[[NSDateFormatter alloc] init] autorelease];
+		[dateFormatter setDateFormat:@"Y/M/d H:m:ss Z"];
+		[notification setAlertBody:[NSString stringWithFormat:@"Synced at %@", [dateFormatter stringFromDate:date]]];
+		[notification setSoundName:UILocalNotificationDefaultSoundName];
+		[notification setAlertAction:@"Open"];
+		[[UIApplication sharedApplication] presentLocalNotificationNow:notification];
+		[notification release];
+	}
+	previousSyncStatusText = text;
+	%orig;
 }
-/*- (void)setLastSyncDate:(double)date*/
-/*{*/
-/*  %log;*/
-/*  %orig;*/
-/*}*/
 %end
-/*%hook SyncButtonItem*/
-/*-(void)setSyncing:(BOOL)arg1*/
-/*{*/
-/*  %log;*/
-/*  %orig;*/
-/*}*/
-/*%end*/
 
-/*%hook RKServiceTwitter*/
-
-/////////////////////////////////////////////////////////////////////////////
-// TweetFormatter
-/////////////////////////////////////////////////////////////////////////////
 @interface RKShareObject : NSObject
 + (id)shareObjectWithItem:(id)item;
 - (id)item;
-- (NSString *)srcTitle;
+- (id)srcTitle;
+- (id)title;
+- (id)url;
 @end
-@interface UITextView(Private)
-- (void)setSelectionToStart;
-@end
-static NSString *srcTitle = nil;
-static BOOL tweetFormatterIsEnabled;
+
 %hook ArticleViewController
 - (void)share:(id)arg
 {
-  %orig;
-  srcTitle = [[%c(RKShareObject) shareObjectWithItem:[self item]] srcTitle];
+	%orig;
+	id item = [%c(RKShareObject) shareObjectWithItem:[self item]];
+	srcTitle = [item srcTitle];
+	title = [item title];
+	url = [item url];
 }
 %end
-%hook TWTweetComposeViewController
-- (BOOL)setInitialText:(NSString *)text
+
+@interface UIView (FindFirstResponder)
+- (UIView *)findFirstResponder;
+@end
+
+@implementation UIView (FindFirstResponder)
+- (UIView *)findFirstResponder
 {
-  if (tweetFormatterIsEnabled)
-    return %orig([NSString stringWithFormat:@"%@ - %@", text, srcTitle]);
-  else
-    return %orig;
+    if (self.isFirstResponder)
+        return self;
+    for (UIView *subView in self.subviews) {
+        UIView *firstResponder = [subView findFirstResponder];
+        if (firstResponder != nil)
+            return firstResponder;
+    }
+    return nil;
 }
-- (void)viewDidAppear:(BOOL)arg1
+@end
+
+%hook RKServiceTwitter
+- (void)share:(id)arg1
 {
-  %orig;
-  if (tweetFormatterIsEnabled) {
-    UITextView *tv = MSHookIvar<UITextView *>(self, "_textView");
-    [tv setSelectionToStart];
-  }
+    NSString *cStr = [format stringByReplacingOccurrencesOfString:M_TITLE withString:title];
+    cStr = [cStr stringByReplacingOccurrencesOfString:M_SOURCE withString:srcTitle];
+
+    UIWindow *window = [UIApplication sharedApplication].keyWindow;
+    id viewController = window.rootViewController;
+
+	TWTweetComposeViewController *twitterPostVC = [[TWTweetComposeViewController alloc] init];
+	[twitterPostVC setInitialText:cStr];
+	[twitterPostVC addURL:[NSURL URLWithString:url]];
+	[viewController presentViewController:twitterPostVC animated:YES completion:^{
+		UITextView *textView = (UITextView *)[[[UIApplication sharedApplication] keyWindow] findFirstResponder];
+		textView.selectedRange = NSMakeRange(0, 0);
+	}];
+}
+%end
+
+%hook RKServiceFacebook
+- (void)share:(id)arg1
+{
+    NSString *cStr = [format stringByReplacingOccurrencesOfString:M_TITLE withString:title];
+    cStr = [cStr stringByReplacingOccurrencesOfString:M_SOURCE withString:srcTitle];
+
+    UIWindow *window = [UIApplication sharedApplication].keyWindow;
+    id viewController = window.rootViewController;
+
+	SLComposeViewController *facebookPostVC = [SLComposeViewController composeViewControllerForServiceType:SLServiceTypeFacebook];    
+	[facebookPostVC setInitialText:cStr];
+	[facebookPostVC addURL:[NSURL URLWithString:url]];
+	[viewController presentViewController:facebookPostVC animated:YES completion:^{
+        UITextView *textView = (UITextView *)[[[UIApplication sharedApplication] keyWindow] findFirstResponder];
+        textView.selectedRange = NSMakeRange(0, 0);
+    }];
 }
 %end
 
 static void LoadSettings()
-{	
-  NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:PREF_PATH];
-  id existTweetFormatterIsEnabled = [dict objectForKey:@"TweetFormatterIsEnabled"];
-  tweetFormatterIsEnabled = existTweetFormatterIsEnabled ? [existTweetFormatterIsEnabled boolValue] : YES;
-
-  id existRootPullViewTopIsEnabled = [dict objectForKey:@"RootPullViewTopIsEnabled"];
-  rootPullViewTopIsEnabled = existRootPullViewTopIsEnabled ? [existRootPullViewTopIsEnabled boolValue] : YES;
-  id existFolderPullViewTopIsEnabled = [dict objectForKey:@"FolderPullViewTopIsEnabled"];
-  folderPullViewTopIsEnabled = existFolderPullViewTopIsEnabled ? [existFolderPullViewTopIsEnabled boolValue] : YES;
-  id existItemPullViewTopIsEnabled = [dict objectForKey:@"ItemPullViewTopIsEnabled"];
-  itemPullViewTopIsEnabled = existItemPullViewTopIsEnabled ? [existItemPullViewTopIsEnabled boolValue] : YES;
-  id existItemPullViewBottomIsEnabled = [dict objectForKey:@"ItemPullViewBottomIsEnabled"];
-  itemPullViewBottomIsEnabled = existItemPullViewBottomIsEnabled ? [existItemPullViewBottomIsEnabled boolValue] : YES;
-
-  id existFolderPullViewTopAction = [dict objectForKey:@"FolderPullViewTopAction"];
-  folderPullViewTopAction = existFolderPullViewTopAction ? [existFolderPullViewTopAction intValue] : 0; // sync
-  id existItemPullViewTopAction = [dict objectForKey:@"ItemPullViewTopAction"];
-  itemPullViewTopAction = existItemPullViewTopAction ? [existItemPullViewTopAction intValue] : 2; // pop
-  id existItemPullViewBottomAction = [dict objectForKey:@"ItemPullViewBottomAction"];
-  itemPullViewBottomAction = existItemPullViewBottomAction ? [existItemPullViewBottomAction intValue] : 1; // markAllAsRead then poptoroot
-  
-  id existRootPullViewTopThreshold = [dict objectForKey:@"RootPullViewTopThreshold"];
-  rootPullViewTopThreshold = existRootPullViewTopThreshold ? [existRootPullViewTopThreshold floatValue] : 60.0f;
-  id existFolderPullViewTopThreshold = [dict objectForKey:@"FolderPullViewTopThreshold"];
-  folderPullViewTopThreshold = existFolderPullViewTopThreshold ? [existFolderPullViewTopThreshold floatValue] : 60.0f;
-  id existItemPullViewTopThreshold = [dict objectForKey:@"ItemPullViewTopThreshold"];
-  itemPullViewTopThreshold = existItemPullViewTopThreshold ? [existItemPullViewTopThreshold floatValue] : 60.0f;
-  id existItemPullViewBottomThreshold = [dict objectForKey:@"ItemPullViewBottomThreshold"];
-  itemPullViewBottomThreshold = existItemPullViewBottomThreshold ? [existItemPullViewBottomThreshold floatValue] : 60.0f;
-
-  UpdateRootPull();
-  UpdatePullPropertys();
+{
+	NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:PREF_PATH];
+	id existRefresh = [dict objectForKey:@"NoRefresh"];
+	isRefresh = existRefresh ? [existRefresh boolValue] : YES;
+	id existFormat = [dict objectForKey:@"Format"];
+    format = existFormat ? [existFormat copy] : @"\"_TITLE_ | _SOURCE_\"";
 }
 
-static void PostNotification(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
-  LoadSettings();
+static void PostNotification(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo)
+{
+	LoadSettings();
 }
 
-%ctor {
-  NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-  CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, PostNotification, CFSTR("jp.r-plus.PullToSyncForReeder3.settingschanged"), NULL, CFNotificationSuspensionBehaviorCoalesce);
-  LoadSettings();
-  [pool release];
+%ctor
+{
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	%init;
+	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, PostNotification, CFSTR("com.kindadev.reederenhancer.settingschanged"), NULL, CFNotificationSuspensionBehaviorCoalesce);
+	LoadSettings();
+    [pool release];
 }
