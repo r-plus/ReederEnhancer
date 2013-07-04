@@ -17,28 +17,6 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>label</key>
-			<string>Disable all refresh</string>
-			<key>footerText</key>
-			<string>Prevents to be refresh all subscriptions by pulling.</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<true/>
-			<key>defaults</key>
-			<string>jp.kindadev.reederenhacner</string>
-			<key>key</key>
-			<string>NoRefresh</string>
-			<key>label</key>
-			<string>Enabled</string>
-			<key>PostNotification</key>
-			<string>com.kindadev.reederenhacner.settingschanged</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSGroupCell</string>
-			<key>label</key>
 			<string>Format (Twitter, Facebook)</string>
 			<key>footerText</key>
 			<string>Macro _TITLE_ : Title _SOURCE_ : Site name</string>
@@ -49,13 +27,57 @@
 			<key>detail</key>
 			<string>PSDetailController</string>
 			<key>defaults</key>
-			<string>com.kindadev.reederenhacner</string>
+			<string>com.kindadev.ReederEnhancer</string>
 			<key>default</key>
 			<string>&quot;_TITLE_ | _SOURCE_&quot;</string>
 			<key>placeholder</key>
 			<string>&quot;_TITLE_ | _SOURCE_&quot;</string>
 			<key>key</key>
 			<string>Format</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Disable all refresh</string>
+			<key>footerText</key>
+			<string>Prevents to be refresh all subscriptions by pulling.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.kindadev.ReederEnhancer</string>
+			<key>key</key>
+			<string>NoRefresh</string>
+			<key>label</key>
+			<string>Enabled</string>
+			<key>PostNotification</key>
+			<string>com.kindadev.ReederEnhancer.settingschanged</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Ask to send</string>
+			<key>footerText</key>
+			<string>Display alerts when sending articles by swiping the article list (Readability, Instapaper, Pocket, QUOTE.fm)</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.kindadev.ReederEnhancer</string>
+			<key>key</key>
+			<string>AskToSend</string>
+			<key>label</key>
+			<string>Enabled</string>
+			<key>PostNotification</key>
+			<string>com.kindadev.ReederEnhancer.settingschanged</string>
 		</dict>
 		<dict>
 			<key>cell</key>
