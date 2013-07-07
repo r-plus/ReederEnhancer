@@ -6,7 +6,7 @@ include theos/makefiles/common.mk
 
 TWEAK_NAME = ReederEnhancer
 ReederEnhancer_FILES = Tweak.xm
-ReederEnhancer_FRAMEWORKS = UIKit
+ReederEnhancer_FRAMEWORKS = UIKit MessageUI
 ReederEnhancer_LDFLAGS = -weak_framework Twitter -weak_framework Social
 
 include $(THEOS_MAKE_PATH)/tweak.mk
@@ -16,6 +16,7 @@ ReederEnhancerSettings_FILES = Preference.m
 ReederEnhancerSettings_INSTALL_PATH = /Library/PreferenceBundles
 ReederEnhancerSettings_FRAMEWORKS = UIKit
 ReederEnhancerSettings_PRIVATE_FRAMEWORKS = Preferences
+ReederEnhancerSettings_LDFLAGS = -weak_framework Twitter -weak_framework Social
 
 include $(THEOS_MAKE_PATH)/bundle.mk
 

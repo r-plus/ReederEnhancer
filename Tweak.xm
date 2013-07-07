@@ -1,9 +1,11 @@
 #import <UIKit/UIKit.h>
 #import <Twitter/TWTweetComposeViewController.h>
 #import <Social/Social.h>
+#import <MessageUI/MessageUI.h>
 
 #define M_TITLE @"_TITLE_"
 #define M_SOURCE @"_SOURCE_"
+#define M_URL @"_URL_"
 #define PREF_PATH @"/var/mobile/Library/Preferences/com.kindadev.ReederEnhancer.plist"
 
 #ifndef kCFCoreFoundationVersionNumber_iOS_5_0
@@ -15,11 +17,40 @@
 
 static BOOL isRefresh;
 static BOOL isAskToSend;
+static BOOL isHatena;
 static NSString *previousSyncStatusText;
+static NSString *previousTitle;
 static NSString *format;
-static id srcTitle;
-static id title;
-static id url;
+static NSString *formatBody;
+static NSString *formatSubject;
+static BOOL isShare = NO;
+static NSString *_title;
+static NSString *_srcTitle;
+static NSString *_url;
+
+@interface RKShareObject : NSObject
++ (id)shareObjectWithItem:(id)item;
+- (id)item;
+- (NSString *)srcTitle;
+- (NSString *)title;
+- (NSString *)url;
+- (NSString *)summary;
+- (NSString *)content;
+@end
+
+@interface ShareButton
++ (id)buttonWithService:(id)arg1;
+- (id)service;
+- (id)image;
+- (id)title;
+@end
+
+@interface SharePanel
+- (void)close:(BOOL)arg1;
+@end
+
+@interface ItemsViewController : UITableViewController
+@end
 
 @interface RSAlert : NSObject
 + (void)presentInput:(id)arg1 withTitle:(id)arg2 placeholder:(id)arg3 description:(id)arg4 buttonTitle:(id)arg5 cancelButtonTitle:(id)arg6 handler:(id)arg7;
@@ -35,17 +66,75 @@ static id url;
 - (id)initWithSize:(int)arg1 image:(id)arg2 text:(id)arg3;
 @end
 
-@interface PullView : UIView
-- (id)initWithFrame:(struct CGRect)arg1;
-- (void)setScale:(float)arg1;
-- (float)scale;
-- (void)setTitle:(id)arg1;
-- (void)setDescription:(id)arg1;
-- (void)setEdgeInset:(float)arg1;
-- (void)setUsesOptimizedDisplay:(BOOL)arg1;
-- (void)setDescriptionImage:(id)arg1;
-- (void)setResizing:(int)arg1;
-@end
+%hook ArticleViewController
+- (void)share:(id)arg1
+{
+	%orig;
+	isShare = YES;
+}
+%end
+
+%hook ShareController
+- (void)share:(id)arg1 inView:(id)arg2 above:(id)arg3 fromFrame:(struct CGRect)arg4
+{
+	%orig;
+	id item = [%c(RKShareObject) shareObjectWithItem:[arg1 item]];
+	_title = [item title];
+	_srcTitle = [item srcTitle];
+	_url = (NSString *)[item url];
+}
+%end
+
+%hook SharePanel
+- (void)close:(BOOL)arg1
+{
+	%orig;
+	isShare = NO;
+}
+- (void)tapClose:(id)arg1
+{
+	%orig;
+	isShare = NO;
+}
+%end
+
+%hook RKServiceMessage
+- (void)share:(RKShareObject *)arg1
+{
+	if (!isHatena) return %orig;
+	if ([[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString:@"hatenabookmark://"]]) {
+		id item = [%c(RKShareObject) shareObjectWithItem:[arg1 item]];
+        NSString *url = [NSString stringWithFormat:@"hatenabookmark:/entry?title=%@&url=%@&backtitle=%@&backurl=%@", [item title], [item url], @"Reeder", @"reeder://"];
+        NSURL *webStringURL = [NSURL URLWithString:[url stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
+        [[%c(SharePanel) alloc] close:YES];
+		[[UIApplication sharedApplication] openURL:webStringURL];
+    } else {
+    	[[%c(SharePanel) alloc] close:YES];
+    	[%c(RSAlert) presentWithTitle:@"Error" message:@"Please install HatenaBookmark.app!" buttonTitle:@"OK" handler:^{}];
+    }
+}
+%end
+
+%hook ShareButton
+- (id)image
+{
+	if (!isHatena) return %orig;
+	id image_ = %orig;
+	if ([previousTitle isEqualToString:@"Hatena B!"])
+		image_ = [UIImage imageWithContentsOfFile:@"/Library/Application Support/ReederEnhancer/bookmark.png"];
+	return image_;
+}
+
+- (id)title
+{
+	if (!isHatena) return %orig;
+	id title_ = %orig;
+	if ([title_ isEqualToString:@"Message"])
+		title_ = @"Hatena B!";
+	previousTitle = title_;
+	return title_;
+}
+%end
 
 %hook SubscriptionsViewController
 - (BOOL)hasRefreshView
@@ -63,24 +152,7 @@ static id url;
 }
 %end
 
-@interface ItemsViewController : UITableViewController
-@end
-
 %hook ItemsViewController
-- (void)setPullTranslation:(float)arg1
- {
- 	%log;
- 	%orig;
- }
-
-- (BOOL)hasRefreshView
-{
-	%log;
-	NSLog(@"[self.tableView.contentSize]: %@", NSStringFromCGSize([self.tableView contentSize]));
-	if (isRefresh) return NO;
-	else return %orig;
-}
-
 - (void)tableView:(id)arg1 didTriggerRightSliderForCell:(id)arg2 atIndexPath:(id)arg3
 {
 	if (!isAskToSend) return %orig;
@@ -172,25 +244,6 @@ static id url;
 }
 %end
 
-@interface RKShareObject : NSObject
-+ (id)shareObjectWithItem:(id)item;
-- (id)item;
-- (id)srcTitle;
-- (id)title;
-- (id)url;
-@end
-
-%hook ArticleViewController
-- (void)share:(id)arg
-{
-	%orig;
-	id item = [%c(RKShareObject) shareObjectWithItem:[self item]];
-	srcTitle = [item srcTitle];
-	title = [item title];
-	url = [item url];
-}
-%end
-
 @interface UIView (FindFirstResponder)
 - (UIView *)findFirstResponder;
 @end
@@ -210,17 +263,18 @@ static id url;
 @end
 
 %hook RKServiceTwitter
-- (void)share:(id)arg1
+- (void)share:(RKShareObject *)arg1
 {
-	NSString *cStr = [format stringByReplacingOccurrencesOfString:M_TITLE withString:title];
-	cStr = [cStr stringByReplacingOccurrencesOfString:M_SOURCE withString:srcTitle];
+	if (!isShare) return %orig;
+	NSString *cStr = [format stringByReplacingOccurrencesOfString:M_TITLE withString:_title];
+	cStr = [cStr stringByReplacingOccurrencesOfString:M_SOURCE withString:_srcTitle];
 
 	UIWindow *window = [UIApplication sharedApplication].keyWindow;
 	id viewController = window.rootViewController;
 
 	TWTweetComposeViewController *twitterPostVC = [[TWTweetComposeViewController alloc] init];
 	[twitterPostVC setInitialText:cStr];
-	[twitterPostVC addURL:[NSURL URLWithString:url]];
+	[twitterPostVC addURL:[NSURL URLWithString:_url]];
 	[viewController presentViewController:twitterPostVC animated:YES completion:^{
 		UITextView *textView = (UITextView *)[[[UIApplication sharedApplication] keyWindow] findFirstResponder];
 		textView.selectedRange = NSMakeRange(0, 0);
@@ -229,21 +283,71 @@ static id url;
 %end
 
 %hook RKServiceFacebook
-- (void)share:(id)arg1
+- (void)share:(RKShareObject *)arg1
 {
-	NSString *cStr = [format stringByReplacingOccurrencesOfString:M_TITLE withString:title];
-	cStr = [cStr stringByReplacingOccurrencesOfString:M_SOURCE withString:srcTitle];
+	if (!isShare) return %orig;
+	NSString *cStr = [format stringByReplacingOccurrencesOfString:M_TITLE withString:_title];
+	cStr = [cStr stringByReplacingOccurrencesOfString:M_SOURCE withString:_srcTitle];
 
 	UIWindow *window = [UIApplication sharedApplication].keyWindow;
 	id viewController = window.rootViewController;
 
 	SLComposeViewController *facebookPostVC = [SLComposeViewController composeViewControllerForServiceType:SLServiceTypeFacebook];    
 	[facebookPostVC setInitialText:cStr];
-	[facebookPostVC addURL:[NSURL URLWithString:url]];
+	[facebookPostVC addURL:[NSURL URLWithString:_url]];
 	[viewController presentViewController:facebookPostVC animated:YES completion:^{
 		UITextView *textView = (UITextView *)[[[UIApplication sharedApplication] keyWindow] findFirstResponder];
 		textView.selectedRange = NSMakeRange(0, 0);
     }];
+}
+%end
+
+@interface RKServiceMailLink <MFMailComposeViewControllerDelegate>
+@end
+
+%hook RKServiceMailLink
+- (void)share:(id)arg1
+{
+	if (!isShare) return %orig;
+	NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+	NSDictionary *recipients = [ud dictionaryForKey:@"ShareRKServiceMail"];
+	NSString *address = [recipients objectForKey:@"EmailLink"];
+
+	NSString *body = [formatBody stringByReplacingOccurrencesOfString:M_TITLE withString:_title];
+	body = [body stringByReplacingOccurrencesOfString:M_SOURCE withString:_srcTitle];
+	body = [body stringByReplacingOccurrencesOfString:M_URL withString:_url];
+
+	NSString *subject = [formatSubject stringByReplacingOccurrencesOfString:M_TITLE withString:_title];
+	subject = [subject stringByReplacingOccurrencesOfString:M_SOURCE withString:_srcTitle];
+	subject = [subject stringByReplacingOccurrencesOfString:M_URL withString:_url];
+
+	UIWindow *window = [UIApplication sharedApplication].keyWindow;
+	id viewController = window.rootViewController;
+
+	MFMailComposeViewController *mailPostVC = [[MFMailComposeViewController alloc] init];
+	mailPostVC.mailComposeDelegate = self;
+	[mailPostVC setMessageBody:body isHTML:YES];
+	[mailPostVC setSubject:subject];
+	[mailPostVC setToRecipients:[NSArray arrayWithObjects:address, nil]];
+	[viewController presentModalViewController:mailPostVC animated:YES];
+	[mailPostVC release];
+}
+%end
+
+@interface RSForm
+@property(copy) NSString * quote;
+@end
+
+static BOOL isDeprecation;
+
+%hook RSForm
+- (NSString *)text
+{
+	if (!isShare || !isDeprecation) return %orig;
+	NSString *cStr = [format stringByReplacingOccurrencesOfString:M_TITLE withString:_title];
+	cStr = [cStr stringByReplacingOccurrencesOfString:M_SOURCE withString:_srcTitle];
+	if (!self.quote || [self.quote isEqualToString:NULL]) cStr = [cStr stringByAppendingString:[NSString stringWithFormat:@" %@%@", @" ", _url]];
+	return cStr;
 }
 %end
 
@@ -254,8 +358,17 @@ static void LoadSettings()
 	isRefresh = existRefresh ? [existRefresh boolValue] : YES;
 	id existAskToSend = [dict objectForKey:@"AskToSend"];
 	isAskToSend = existAskToSend ? [existAskToSend boolValue] : YES;
+	id existHatena = [dict objectForKey:@"IsHatena"];
+	isHatena = existHatena ? [existHatena boolValue] : NO;
 	id existFormat = [dict objectForKey:@"Format"];
     format = existFormat ? [existFormat copy] : @"\"_TITLE_ | _SOURCE_\"";
+	id existFormatBody = [dict objectForKey:@"FormatBody"];
+    formatBody = existFormatBody ? [existFormatBody copy] : @"\"_TITLE_ | _SOURCE_\"<br />_URL_";
+	id existFormatSubject = [dict objectForKey:@"FormatSubject"];
+    formatSubject = existFormatSubject ? [existFormatSubject copy] : @"[RSS] _TITLE_ | _SOURCE_\"";
+
+	id existDeprecation = [dict objectForKey:@"Deprecation"];
+	isDeprecation = existDeprecation ? [existDeprecation boolValue] : NO;
 }
 
 static void PostNotification(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo)

@@ -19,7 +19,7 @@
 			<key>label</key>
 			<string>Format (Twitter, Facebook)</string>
 			<key>footerText</key>
-			<string>Macro _TITLE_ : Title _SOURCE_ : Site name</string>
+			<string>_TITLE_ : Title,  _SOURCE_ : Source  *Deprecation (App.net, Buffer, etc.) It does not work well if you do not make changes something after the share view is displayed.</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -37,9 +37,63 @@
 		</dict>
 		<dict>
 			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.kindadev.ReederEnhancer</string>
+			<key>key</key>
+			<string>Beta</string>
+			<key>label</key>
+			<string>* App.net, Buffer, etc.</string>
+			<key>PostNotification</key>
+			<string>com.kindadev.ReederEnhancer.settingschanged</string>
+		</dict>
+		<dict>
+			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>label</key>
-			<string>Disable all refresh</string>
+			<string>Format (Mail Link)</string>
+			<key>footerText</key>
+			<string>_TITLE_ : Title,  _SOURCE_ : Source, _URL_ : Link url</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>detail</key>
+			<string>PSDetailController</string>
+			<key>defaults</key>
+			<string>com.kindadev.ReederEnhancer</string>
+			<key>default</key>
+			<string>[RSS] _TITLE_ | _SOURCE_</string>
+			<key>placeholder</key>
+			<string>[RSS] _TITLE_ | _SOURCE_</string>
+			<key>key</key>
+			<string>Format</string>
+			<key>label</key>
+			<string>Subject</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>detail</key>
+			<string>PSDetailController</string>
+			<key>defaults</key>
+			<string>com.kindadev.ReederEnhancer</string>
+			<key>default</key>
+			<string>&quot;_TITLE_ | _SOURCE_&quot;&lt;br /&gt;_URL_</string>
+			<key>placeholder</key>
+			<string>&quot;_TITLE_ | _SOURCE_&quot;&lt;br /&gt;_URL_</string>
+			<key>key</key>
+			<string>FormatSubject</string>
+			<key>label</key>
+			<string>Body</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Disable &quot;Pull to Refresh&quot;</string>
 			<key>footerText</key>
 			<string>Prevents to be refresh all subscriptions by pulling.</string>
 		</dict>
@@ -63,7 +117,7 @@
 			<key>label</key>
 			<string>Ask to send</string>
 			<key>footerText</key>
-			<string>Display alerts when sending articles by swiping the article list (Readability, Instapaper, Pocket, QUOTE.fm)</string>
+			<string>Display alerts when sending articles by swiping the article list. (Readability, Instapaper, Pocket, QUOTE.fm)</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -74,6 +128,28 @@
 			<string>com.kindadev.ReederEnhancer</string>
 			<key>key</key>
 			<string>AskToSend</string>
+			<key>label</key>
+			<string>Enabled</string>
+			<key>PostNotification</key>
+			<string>com.kindadev.ReederEnhancer.settingschanged</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Add HatenaBookmark action</string>
+			<key>footerText</key>
+			<string>Caution: Replace the Message action.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.kindadev.ReederEnhancer</string>
+			<key>key</key>
+			<string>IsHatena</string>
 			<key>label</key>
 			<string>Enabled</string>
 			<key>PostNotification</key>
