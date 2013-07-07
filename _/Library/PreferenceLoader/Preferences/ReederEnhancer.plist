@@ -1,0 +1,10 @@
+{
+	entry = {
+		bundle = "ReederEnhancerSettings";
+		cell = PSLinkCell;
+		detail = "ReederEnhancerListController";
+		icon = "ReederEnhancer.png";
+		isController = 1;
+		label = ReederEnhancer;
+	};
+}

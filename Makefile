@@ -5,7 +5,7 @@ THEOS_DEVICE_IP = 192.168.1.109
 include theos/makefiles/common.mk
 
 TWEAK_NAME = ReederEnhancer
-ReederEnhancer_FILES = Tweak.xm
+ReederEnhancer_FILES = Tweak.xm DCAtomPub/Base64EncDec.m DCAtomPub/CocoaCryptoHashing.m DCAtomPub/DCAtomPubClient.m DCAtomPub/DCHatenaClient.m DCAtomPub/DCWSSE.m DCAtomPub/DCWSSEURLRequest.m
 ReederEnhancer_FRAMEWORKS = UIKit MessageUI
 ReederEnhancer_LDFLAGS = -weak_framework Twitter -weak_framework Social
 

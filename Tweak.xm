@@ -2,6 +2,8 @@
 #import <Twitter/TWTweetComposeViewController.h>
 #import <Social/Social.h>
 #import <MessageUI/MessageUI.h>
+#import "DCAtomPub/DCWSSE.h"
+#import "DCAtomPub/DCHatenaClient.h"
 
 #define M_TITLE @"_TITLE_"
 #define M_SOURCE @"_SOURCE_"
@@ -49,9 +51,6 @@ static NSString *_url;
 - (void)close:(BOOL)arg1;
 @end
 
-@interface ItemsViewController : UITableViewController
-@end
-
 @interface RSAlert : NSObject
 + (void)presentInput:(id)arg1 withTitle:(id)arg2 placeholder:(id)arg3 description:(id)arg4 buttonTitle:(id)arg5 cancelButtonTitle:(id)arg6 handler:(id)arg7;
 + (void)presentSheetWithTitle:(id)arg1 buttonTitle:(id)arg2 cancelButtonTitle:(id)arg3 handler:(id)arg4;
@@ -63,16 +62,7 @@ static NSString *_url;
 @interface BezelPanel
 + (id)bezelWithSize:(int)arg1 image:(id)arg2 text:(id)arg3;
 - (void)flashInView:(id)arg1 direction:(int)arg2;
-- (id)initWithSize:(int)arg1 image:(id)arg2 text:(id)arg3;
 @end
-
-%hook ArticleViewController
-- (void)share:(id)arg1
-{
-	%orig;
-	isShare = YES;
-}
-%end
 
 %hook ShareController
 - (void)share:(id)arg1 inView:(id)arg2 above:(id)arg3 fromFrame:(struct CGRect)arg4
@@ -82,6 +72,14 @@ static NSString *_url;
 	_title = [item title];
 	_srcTitle = [item srcTitle];
 	_url = (NSString *)[item url];
+}
+%end
+
+%hook ArticleViewController
+- (void)share:(id)arg1
+{
+	%orig;
+	isShare = YES;
 }
 %end
 
@@ -98,18 +96,62 @@ static NSString *_url;
 }
 %end
 
+@interface RKServiceMessage
+- (void)postHatenaWtihComment:(NSString *)comment;
+- (void)postHatenaFromUrlScheme;
+@end
+
+static NSString *filedText;
+static int choice;
+static NSString *hatenaUsername;
+static NSString *hatenaPassword;
+static NSString *hatenaComment;
+
+%hook UITextField
+- (id)_text
+{
+	filedText = %orig;
+	return filedText;
+}
+%end
+
 %hook RKServiceMessage
 - (void)share:(RKShareObject *)arg1
 {
 	if (!isHatena) return %orig;
+	if (choice == 0) {
+		[%c(RSAlert) presentInput:nil withTitle:@"Send to HatenaBookmark" placeholder:@"Comment [Tag]" description:nil buttonTitle:@"Send" cancelButtonTitle:@"Cancel" handler:^{
+			[self postHatenaWtihComment:filedText];
+		}];
+	} else if (choice == 1) [self postHatenaFromUrlScheme];
+}
+
+%new(v@:@)
+- (void)postHatenaWtihComment:(NSString *)comment
+{
+    if ([hatenaUsername isEqualToString:@""] || [hatenaPassword isEqualToString:@""])
+    	return [%c(RSAlert) presentWithTitle:@"Error" message:@"Please Login HatenaBookmark! You can configure options from Setting.app." buttonTitle:@"OK" handler:^{}];
+    [DCWSSE wsseString:hatenaUsername password:hatenaPassword];
+    DCHatenaClient *hatenaClient = [[DCHatenaClient alloc] initWithUsername:hatenaUsername password:hatenaPassword];
+	// hatenaClient.delegate = [[[DCAtomPubDelegate alloc] init] autorelease];
+	comment = [NSString stringWithFormat:@"%@ %@", comment, hatenaComment];
+	[hatenaClient post:_url comment:comment];
+
+	BezelPanel *bezel = [%c(BezelPanel) bezelWithSize:55 image:[UIImage imageWithContentsOfFile:@"/Library/Application Support/ReederEnhancer/Bookmark.png"] text:@"Hatena B!"];
+	UIWindow *window = [UIApplication sharedApplication].keyWindow;
+	[bezel flashInView:window.rootViewController.view direction:1];
+}
+
+%new(v@:)
+- (void)postHatenaFromUrlScheme
+{
 	if ([[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString:@"hatenabookmark://"]]) {
-		id item = [%c(RKShareObject) shareObjectWithItem:[arg1 item]];
-        NSString *url = [NSString stringWithFormat:@"hatenabookmark:/entry?title=%@&url=%@&backtitle=%@&backurl=%@", [item title], [item url], @"Reeder", @"reeder://"];
+        NSString *url = [NSString stringWithFormat:@"hatenabookmark:/entry?title=%@&url=%@&backtitle=%@&backurl=%@", _title, _url, @"Reeder", @"reeder://"];
         NSURL *webStringURL = [NSURL URLWithString:[url stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
-        [[%c(SharePanel) alloc] close:YES];
+        SharePanel *sharePanel = [[%c(SharePanel) alloc] init];
+        [sharePanel close:YES];
 		[[UIApplication sharedApplication] openURL:webStringURL];
     } else {
-    	[[%c(SharePanel) alloc] close:YES];
     	[%c(RSAlert) presentWithTitle:@"Error" message:@"Please install HatenaBookmark.app!" buttonTitle:@"OK" handler:^{}];
     }
 }
@@ -121,7 +163,7 @@ static NSString *_url;
 	if (!isHatena) return %orig;
 	id image_ = %orig;
 	if ([previousTitle isEqualToString:@"Hatena B!"])
-		image_ = [UIImage imageWithContentsOfFile:@"/Library/Application Support/ReederEnhancer/bookmark.png"];
+		image_ = [UIImage imageWithContentsOfFile:@"/Library/Application Support/ReederEnhancer/Bookmark.png"];
 	return image_;
 }
 
@@ -153,6 +195,12 @@ static NSString *_url;
 %end
 
 %hook ItemsViewController
+- (BOOL)hasRefreshView
+{
+	if (isRefresh) return NO;
+	else return %orig;
+}
+
 - (void)tableView:(id)arg1 didTriggerRightSliderForCell:(id)arg2 atIndexPath:(id)arg3
 {
 	if (!isAskToSend) return %orig;
@@ -346,7 +394,7 @@ static BOOL isDeprecation;
 	if (!isShare || !isDeprecation) return %orig;
 	NSString *cStr = [format stringByReplacingOccurrencesOfString:M_TITLE withString:_title];
 	cStr = [cStr stringByReplacingOccurrencesOfString:M_SOURCE withString:_srcTitle];
-	if (!self.quote || [self.quote isEqualToString:NULL]) cStr = [cStr stringByAppendingString:[NSString stringWithFormat:@" %@%@", @" ", _url]];
+	if (!self.quote || [self.quote isEqualToString:NULL]) cStr = [cStr stringByAppendingString:[NSString stringWithFormat:@" %@", _url]];
 	return cStr;
 }
 %end
@@ -366,6 +414,14 @@ static void LoadSettings()
     formatBody = existFormatBody ? [existFormatBody copy] : @"\"_TITLE_ | _SOURCE_\"<br />_URL_";
 	id existFormatSubject = [dict objectForKey:@"FormatSubject"];
     formatSubject = existFormatSubject ? [existFormatSubject copy] : @"[RSS] _TITLE_ | _SOURCE_\"";
+    id existChoice = [dict objectForKey:@"Choice"];
+    choice = existChoice ? [existChoice intValue] : 0;
+    id existUsername = [dict objectForKey:@"HatenaUsername"];
+    hatenaUsername = existUsername ? [existUsername copy] : @"";
+    id existPassword = [dict objectForKey:@"HatenaPassword"];
+    hatenaPassword = existPassword ? [existPassword copy] : @"";
+    id existComment = [dict objectForKey:@"DefaultComment"];
+    hatenaComment = existComment ? [existComment copy] : @"";
 
 	id existDeprecation = [dict objectForKey:@"Deprecation"];
 	isDeprecation = existDeprecation ? [existDeprecation boolValue] : NO;
