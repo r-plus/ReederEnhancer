@@ -34,6 +34,22 @@
 			<string>&quot;_TITLE_ | _SOURCE_&quot;</string>
 			<key>key</key>
 			<string>Format</string>
+			<key>PostNotification</key>
+			<string>com.kindadev.ReederEnhancer.settingschanged</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.kindadev.ReederEnhancer</string>
+			<key>key</key>
+			<string>CaretMoveToTop</string>
+			<key>label</key>
+			<string>Caret move to top</string>
+			<key>PostNotification</key>
+			<string>com.kindadev.ReederEnhancer.settingschanged</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -43,7 +59,7 @@
 			<key>defaults</key>
 			<string>com.kindadev.ReederEnhancer</string>
 			<key>key</key>
-			<string>Beta</string>
+			<string>Deprecation</string>
 			<key>label</key>
 			<string>* App.net, Buffer, etc.</string>
 			<key>PostNotification</key>
@@ -69,9 +85,11 @@
 			<key>placeholder</key>
 			<string>[RSS] _TITLE_ | _SOURCE_</string>
 			<key>key</key>
-			<string>Format</string>
+			<string>FormatSubject</string>
 			<key>label</key>
 			<string>Subject</string>
+			<key>PostNotification</key>
+			<string>com.kindadev.ReederEnhancer.settingschanged</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -81,13 +99,15 @@
 			<key>defaults</key>
 			<string>com.kindadev.ReederEnhancer</string>
 			<key>default</key>
-			<string>&quot;_TITLE_ | _SOURCE_&quot;&lt;br /&gt;_URL_</string>
+			<string>&quot;_TITLE_ | _SOURCE_&quot;&lt;br /&gt;&lt;br /&gt;_URL_</string>
 			<key>placeholder</key>
-			<string>&quot;_TITLE_ | _SOURCE_&quot;&lt;br /&gt;_URL_</string>
+			<string>&quot;_TITLE_ | _SOURCE_&quot;&lt;br /&gt;&lt;br /&gt;_URL_</string>
 			<key>key</key>
-			<string>FormatSubject</string>
+			<string>FormatBody</string>
 			<key>label</key>
 			<string>Body</string>
+			<key>PostNotification</key>
+			<string>com.kindadev.ReederEnhancer.settingschanged</string>
 		</dict>
 		<dict>
 			<key>cell</key>

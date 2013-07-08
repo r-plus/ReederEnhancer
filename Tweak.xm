@@ -120,7 +120,9 @@ static NSString *hatenaComment;
 {
 	if (!isHatena) return %orig;
 	if (choice == 0) {
-		[%c(RSAlert) presentInput:nil withTitle:@"Send to HatenaBookmark" placeholder:@"Comment [Tag]" description:nil buttonTitle:@"Send" cancelButtonTitle:@"Cancel" handler:^{
+	    if ([hatenaUsername isEqualToString:@""] || [hatenaPassword isEqualToString:@""])
+    		return [%c(RSAlert) presentWithTitle:@"Error!" message:@"Please Login HatenaBookmark! You can configure options from Setting.app." buttonTitle:@"OK" handler:^{}];
+		[%c(RSAlert) presentInput:hatenaComment withTitle:@"Send to HatenaBookmark" placeholder:@"Comment [Tag]" description:nil buttonTitle:@"Send" cancelButtonTitle:@"Cancel" handler:^{
 			[self postHatenaWtihComment:filedText];
 		}];
 	} else if (choice == 1) [self postHatenaFromUrlScheme];
@@ -129,12 +131,9 @@ static NSString *hatenaComment;
 %new(v@:@)
 - (void)postHatenaWtihComment:(NSString *)comment
 {
-    if ([hatenaUsername isEqualToString:@""] || [hatenaPassword isEqualToString:@""])
-    	return [%c(RSAlert) presentWithTitle:@"Error" message:@"Please Login HatenaBookmark! You can configure options from Setting.app." buttonTitle:@"OK" handler:^{}];
     [DCWSSE wsseString:hatenaUsername password:hatenaPassword];
     DCHatenaClient *hatenaClient = [[DCHatenaClient alloc] initWithUsername:hatenaUsername password:hatenaPassword];
 	// hatenaClient.delegate = [[[DCAtomPubDelegate alloc] init] autorelease];
-	comment = [NSString stringWithFormat:@"%@ %@", comment, hatenaComment];
 	[hatenaClient post:_url comment:comment];
 
 	BezelPanel *bezel = [%c(BezelPanel) bezelWithSize:55 image:[UIImage imageWithContentsOfFile:@"/Library/Application Support/ReederEnhancer/Bookmark.png"] text:@"Hatena B!"];
@@ -152,7 +151,7 @@ static NSString *hatenaComment;
         [sharePanel close:YES];
 		[[UIApplication sharedApplication] openURL:webStringURL];
     } else {
-    	[%c(RSAlert) presentWithTitle:@"Error" message:@"Please install HatenaBookmark.app!" buttonTitle:@"OK" handler:^{}];
+    	[%c(RSAlert) presentWithTitle:@"Error!" message:@"Please install HatenaBookmark.app!" buttonTitle:@"OK" handler:^{}];
     }
 }
 %end
@@ -310,23 +309,42 @@ static NSString *hatenaComment;
 }
 @end
 
+@interface RKServiceTwitter
+- (void)handleKeyboardWillShow:(NSNotification *)notification;
+@end
+
+static BOOL moveToTop;
 %hook RKServiceTwitter
 - (void)share:(RKShareObject *)arg1
 {
 	if (!isShare) return %orig;
 	NSString *cStr = [format stringByReplacingOccurrencesOfString:M_TITLE withString:_title];
 	cStr = [cStr stringByReplacingOccurrencesOfString:M_SOURCE withString:_srcTitle];
+	if (cStr.length > 140) cStr = [cStr substringWithRange:NSMakeRange(0, 140)];
 
-	UIWindow *window = [UIApplication sharedApplication].keyWindow;
+	UIWindow *window = [[UIApplication sharedApplication] keyWindow];
 	id viewController = window.rootViewController;
 
-	TWTweetComposeViewController *twitterPostVC = [[TWTweetComposeViewController alloc] init];
-	[twitterPostVC setInitialText:cStr];
-	[twitterPostVC addURL:[NSURL URLWithString:_url]];
-	[viewController presentViewController:twitterPostVC animated:YES completion:^{
-		UITextView *textView = (UITextView *)[[[UIApplication sharedApplication] keyWindow] findFirstResponder];
-		textView.selectedRange = NSMakeRange(0, 0);
-	}];
+	if (moveToTop) [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(handleKeyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
+
+	if (kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_6_0) {
+		SLComposeViewController *twitterPostVC = [SLComposeViewController composeViewControllerForServiceType:SLServiceTypeTwitter];
+		[twitterPostVC setInitialText:cStr];
+		[twitterPostVC addURL:[NSURL URLWithString:_url]];
+		[viewController presentViewController:twitterPostVC animated:YES completion:nil];
+	} else if (kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_5_0) {
+		TWTweetComposeViewController *twitterPostVC = [[TWTweetComposeViewController alloc] init];
+		[twitterPostVC setInitialText:cStr];
+		[twitterPostVC addURL:[NSURL URLWithString:_url]];
+		[viewController presentModalViewController:twitterPostVC animated:YES];
+	}
+}
+
+%new(v@:@)
+- (void)handleKeyboardWillShow:(NSNotification *)notification
+{
+	UITextView *textView = (UITextView *)[[[UIApplication sharedApplication] keyWindow] findFirstResponder];
+	[textView setSelectedRange:NSMakeRange(0, 0)];
 }
 %end
 
@@ -343,10 +361,7 @@ static NSString *hatenaComment;
 	SLComposeViewController *facebookPostVC = [SLComposeViewController composeViewControllerForServiceType:SLServiceTypeFacebook];    
 	[facebookPostVC setInitialText:cStr];
 	[facebookPostVC addURL:[NSURL URLWithString:_url]];
-	[viewController presentViewController:facebookPostVC animated:YES completion:^{
-		UITextView *textView = (UITextView *)[[[UIApplication sharedApplication] keyWindow] findFirstResponder];
-		textView.selectedRange = NSMakeRange(0, 0);
-    }];
+	[viewController presentViewController:facebookPostVC animated:YES completion:nil];
 }
 %end
 
@@ -411,7 +426,7 @@ static void LoadSettings()
 	id existFormat = [dict objectForKey:@"Format"];
     format = existFormat ? [existFormat copy] : @"\"_TITLE_ | _SOURCE_\"";
 	id existFormatBody = [dict objectForKey:@"FormatBody"];
-    formatBody = existFormatBody ? [existFormatBody copy] : @"\"_TITLE_ | _SOURCE_\"<br />_URL_";
+    formatBody = existFormatBody ? [existFormatBody copy] : @"\"_TITLE_ | _SOURCE_\"<br /><br />_URL_";
 	id existFormatSubject = [dict objectForKey:@"FormatSubject"];
     formatSubject = existFormatSubject ? [existFormatSubject copy] : @"[RSS] _TITLE_ | _SOURCE_\"";
     id existChoice = [dict objectForKey:@"Choice"];
@@ -421,7 +436,10 @@ static void LoadSettings()
     id existPassword = [dict objectForKey:@"HatenaPassword"];
     hatenaPassword = existPassword ? [existPassword copy] : @"";
     id existComment = [dict objectForKey:@"DefaultComment"];
-    hatenaComment = existComment ? [existComment copy] : @"";
+    hatenaComment = existComment ? [existComment copy] : @"[Reeder]";
+
+    id existMoveToTop = [dict objectForKey:@"CaretMoveToTop"];
+    moveToTop = existMoveToTop ? [existMoveToTop boolValue] : YES;
 
 	id existDeprecation = [dict objectForKey:@"Deprecation"];
 	isDeprecation = existDeprecation ? [existDeprecation boolValue] : NO;
