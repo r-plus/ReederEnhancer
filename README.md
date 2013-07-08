@@ -1,15 +1,15 @@
 # ReederEnhancer
 Add the useful feature for Reeder v3.x.
+ReederEnhancer extends the Reeder.app
+
+Compatible with iOS 5 or higher
 
 * Display alerts when sending articles by swiping the article list
 * Disable "Pull to Refresh"
 * Add HatenaBookmark function
 * Sync notification
-* change the format then move to top the caret for Twitter, Facebook, App.net, Buffer, etc.
-* change the format for Mail Link
-
-Compatible with iOS 5 or higher
-ReederEnhancer extends the Reeder.app
+* Change the format then move to top the caret for Twitter, Facebook, App.net, Buffer, etc.
+* Change the format for Mail Link
 
 * You can configure options from Setting.app
 
