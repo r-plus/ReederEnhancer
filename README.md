@@ -17,8 +17,12 @@ Follow me Twitter (@wa_kinchan)
 Enjoy!!
 
 # Change Log
-version 1.5.6:
+version 1.5.7:
 New: "Use HTML" option.
+
+version 1.5.6:
+Fix: Show an alert when a user name or password is incorrect when send to HatenaBookmark.
+Fix: Display an error if it is not connected to the network.
 
 version 1.5.5:
 New: "Caret move to top" option.
