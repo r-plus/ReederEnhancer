@@ -1,17 +1,31 @@
-ReederEnhancer
+# ReederEnhancer
+Add the useful feature for Reeder v3.x.
+ReederEnhancer extends the Reeder.app
 
 Compatible with iOS 5 or higher
 
-ReederEnhancer extends the Reeder.app
+* Display alerts when sending articles by swiping the article list
+* Disable "Pull to Refresh"
+* Add HatenaBookmark function
+* Sync notification
+* Change the format then move to top the caret for Twitter, Facebook, App.net, Buffer, etc.
+* Change the format for Mail Link
 
-* You can configure options from Setting.app
+You can configure options from Setting.app
 
 Follow me Twitter (@wa_kinchan)
-
 Enjoy!!
 
+# Change Log
+version 1.5.7:
+New: "Use HTML" option.
+
+version 1.5.6:
+Fix: Show an alert when a user name or password is incorrect when send to HatenaBookmark.
+Fix: Display an error if it is not connected to the network.
+
 version 1.5.5:
-New: Caret move to top option.
+New: "Caret move to top" option.
 
 version 1.5.1 - 1.5.4:
 Some bug fixes.
@@ -37,3 +51,6 @@ New: Ask to send function.
 
 version 1.0:
 Initial release
+
+# License
+ReederEnhancer - r-plus Licensed under the ISC License; Modified by @wa_kinchan

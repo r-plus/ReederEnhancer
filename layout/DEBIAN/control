@@ -1,9 +1,10 @@
 Package: com.kindadev.reederenhancer
 Name: ReederEnhancer
 Depends: mobilesubstrate
-Version: 1.5.5
+Version: 1.5.7
 Architecture: iphoneos-arm
 Description: Enhance the Reeder.app!
+Depiction: http://kindadev.com/cydia/ReederEnhancer.html
 Maintainer: kinda
 Author: kinda
 Section: Tweaks
