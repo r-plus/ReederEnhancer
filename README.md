@@ -8,10 +8,10 @@ Compatible with iOS 5 or higher
 * Disable "Pull to Refresh"
 * Add HatenaBookmark function
 * Sync notification
-* Change the format then move to top the caret for Twitter, Facebook, App.net, Buffer, etc
+* Change the format then move to top the caret for Twitter, Facebook, App.net, Buffer, etc.
 * Change the format for Mail Link
 
-* You can configure options from Setting.app
+You can configure options from Setting.app
 
 Follow me Twitter (@wa_kinchan)
 Enjoy!!
