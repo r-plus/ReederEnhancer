@@ -17,8 +17,14 @@ Follow me Twitter (@wa_kinchan)
 Enjoy!!
 
 # Change Log
+version 2.0:
+Release version to bigboss.
+
+version 1.5.8:
+Fix: When send to Hatena bookmark, correct the problem that 400 error occurs.
+
 version 1.5.7:
-New: "Use HTML" option.
+New: "Use HTML in the Body" option.
 
 version 1.5.6:
 Fix: Show an alert when a user name or password is incorrect when send to HatenaBookmark.
