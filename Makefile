@@ -1,6 +1,6 @@
 ARCHS = armv7
 THEOS_INSTALL_KILL = Reeder
-THEOS_DEVICE_IP = 192.168.1.109
+THEOS_DEVICE_IP = 192.168.1.105
 
 include theos/makefiles/common.mk
 

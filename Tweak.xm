@@ -20,6 +20,7 @@
 static BOOL isRefresh;
 static BOOL isAskToSend;
 static BOOL isHatena;
+static BOOL isHTML;
 static NSString *previousSyncStatusText;
 static NSString *previousTitle;
 static NSString *format;
@@ -96,9 +97,45 @@ static NSString *_url;
 }
 %end
 
+static inline void Response(NSString *res)
+{
+	NSLog(@"Response: %@", res);
+	if ([res isEqualToString:@"401 Unauthorized"]) {
+		[%c(RSAlert) presentWithTitle:res message:@"Incorrect username or password." buttonTitle:@"OK" handler:nil];
+	} else if ([res isEqualToString:@"400 Bad Request"]) {
+		[%c(RSAlert) presentWithTitle:res message:@"Please try again after a while." buttonTitle:@"OK" handler:nil];
+	} else {
+		BezelPanel *bezel = [%c(BezelPanel) bezelWithSize:55 image:[UIImage imageWithContentsOfFile:@"/Library/Application Support/ReederEnhancer/Bookmark.png"] text:@"Hatena B!"];
+		UIWindow *window = [UIApplication sharedApplication].keyWindow;
+		[bezel flashInView:window.rootViewController.view direction:1];
+	}
+}
+
 @interface RKServiceMessage
 - (void)postHatenaWtihComment:(NSString *)comment;
 - (void)postHatenaFromUrlScheme;
+- (void)handleKeyboardWillShow:(NSNotification *)notification;
+@end
+
+@interface Reachability
++ (id)reachabilityForInternetConnection;
+- (int)currentReachabilityStatus;
+@end
+
+typedef enum {
+    NotReachable = 0,
+    ReachableViaWiFi,
+    ReachableViaWWAN
+} NetworkStatus;
+
+@interface AtomPubDelegate : NSObject <DCAtomPubDelegate> {}
+@end
+
+@implementation AtomPubDelegate
+- (void)connectionDidFinishLoading:(NSURLConnection *)connection data:(NSData *)data {
+	NSString *responseBody = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+	Response(responseBody);
+}
 @end
 
 static NSString *filedText;
@@ -121,9 +158,21 @@ static NSString *hatenaComment;
 	if (!isHatena) return %orig;
 	if (choice == 0) {
 	    if ([hatenaUsername isEqualToString:@""] || [hatenaPassword isEqualToString:@""])
-    		return [%c(RSAlert) presentWithTitle:@"Error!" message:@"Please Login HatenaBookmark! You can configure options from Setting.app." buttonTitle:@"OK" handler:^{}];
+    		return [%c(RSAlert) presentWithTitle:@"Error!" message:@"Please Login HatenaBookmark! You can configure options from Setting.app." buttonTitle:@"OK" handler:nil];
 		[%c(RSAlert) presentInput:hatenaComment withTitle:@"Send to HatenaBookmark" placeholder:@"Comment [Tag]" description:nil buttonTitle:@"Send" cancelButtonTitle:@"Cancel" handler:^{
-			[self postHatenaWtihComment:filedText];
+			Reachability *curReach = [%c(Reachability) reachabilityForInternetConnection];
+			NetworkStatus netStatus = (NetworkStatus)[curReach currentReachabilityStatus];
+			switch (netStatus) {
+				case NotReachable:
+					[%c(RSAlert) presentWithTitle:@"Error!" message:@"Reeder cannot send to HatneBookmark because it is not connected to the Internet." buttonTitle:@"OK" handler:nil];
+					break;
+				case ReachableViaWWAN:
+				case ReachableViaWiFi:
+					[self postHatenaWtihComment:filedText];
+					break;
+				default:
+					break;
+			}
 		}];
 	} else if (choice == 1) [self postHatenaFromUrlScheme];
 }
@@ -133,12 +182,9 @@ static NSString *hatenaComment;
 {
     [DCWSSE wsseString:hatenaUsername password:hatenaPassword];
     DCHatenaClient *hatenaClient = [[DCHatenaClient alloc] initWithUsername:hatenaUsername password:hatenaPassword];
-	// hatenaClient.delegate = [[[DCAtomPubDelegate alloc] init] autorelease];
+	hatenaClient.delegate = [[[AtomPubDelegate alloc] init] autorelease];
+	_url = (NSString *)CFURLCreateStringByAddingPercentEscapes(NULL, (CFStringRef)_url, NULL,  (CFStringRef)@"&=-#", kCFStringEncodingUTF8);
 	[hatenaClient post:_url comment:comment];
-
-	BezelPanel *bezel = [%c(BezelPanel) bezelWithSize:55 image:[UIImage imageWithContentsOfFile:@"/Library/Application Support/ReederEnhancer/Bookmark.png"] text:@"Hatena B!"];
-	UIWindow *window = [UIApplication sharedApplication].keyWindow;
-	[bezel flashInView:window.rootViewController.view direction:1];
 }
 
 %new(v@:)
@@ -389,7 +435,7 @@ static BOOL moveToTop;
 
 	MFMailComposeViewController *mailPostVC = [[MFMailComposeViewController alloc] init];
 	mailPostVC.mailComposeDelegate = self;
-	[mailPostVC setMessageBody:body isHTML:YES];
+	[mailPostVC setMessageBody:body isHTML:isHTML];
 	[mailPostVC setSubject:subject];
 	[mailPostVC setToRecipients:[NSArray arrayWithObjects:address, nil]];
 	[viewController presentModalViewController:mailPostVC animated:YES];
@@ -428,7 +474,7 @@ static void LoadSettings()
 	id existFormatBody = [dict objectForKey:@"FormatBody"];
     formatBody = existFormatBody ? [existFormatBody copy] : @"\"_TITLE_ | _SOURCE_\"<br /><br />_URL_";
 	id existFormatSubject = [dict objectForKey:@"FormatSubject"];
-    formatSubject = existFormatSubject ? [existFormatSubject copy] : @"[RSS] _TITLE_ | _SOURCE_\"";
+    formatSubject = existFormatSubject ? [existFormatSubject copy] : @"[RSS] _TITLE_ | _SOURCE_";
     id existChoice = [dict objectForKey:@"Choice"];
     choice = existChoice ? [existChoice intValue] : 0;
     id existUsername = [dict objectForKey:@"HatenaUsername"];
@@ -437,7 +483,8 @@ static void LoadSettings()
     hatenaPassword = existPassword ? [existPassword copy] : @"";
     id existComment = [dict objectForKey:@"DefaultComment"];
     hatenaComment = existComment ? [existComment copy] : @"[Reeder]";
-
+    id existIsHTML = [dict objectForKey:@"IsHTML"];
+    isHTML = existIsHTML ? [existIsHTML boolValue] : YES;
     id existMoveToTop = [dict objectForKey:@"CaretMoveToTop"];
     moveToTop = existMoveToTop ? [existMoveToTop boolValue] : YES;
 
