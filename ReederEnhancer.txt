@@ -6,7 +6,11 @@ Compatible with iOS 5 or higher
 
 * Display alerts when sending articles by swiping the article list
 * Disable "Pull to Refresh"
+<<<<<<< HEAD
 * Add "Send to HatenaBookmark" function
+=======
+* Add HatenaBookmark function
+>>>>>>> 256d26e0b1e7088e492876445430fd18d1170eaf
 * Sync notification
 * Change the format then move to top the caret for Twitter, Facebook, App.net, Buffer, etc.
 * Change the format for Mail Link
@@ -17,12 +21,15 @@ Follow me Twitter (@wa_kinchan)
 Enjoy!!
 
 # Change Log
+<<<<<<< HEAD
 version 2.0:
 Release version to bigboss.
 
 version 1.5.8:
 Fix: When send to Hatena bookmark, correct the problem that 400 error occurs.
 
+=======
+>>>>>>> 256d26e0b1e7088e492876445430fd18d1170eaf
 version 1.5.7:
 New: "Use HTML" option.
 

@@ -183,7 +183,10 @@ static NSString *hatenaComment;
     [DCWSSE wsseString:hatenaUsername password:hatenaPassword];
     DCHatenaClient *hatenaClient = [[DCHatenaClient alloc] initWithUsername:hatenaUsername password:hatenaPassword];
 	hatenaClient.delegate = [[[AtomPubDelegate alloc] init] autorelease];
+<<<<<<< HEAD
 	_url = (NSString *)CFURLCreateStringByAddingPercentEscapes(NULL, (CFStringRef)_url, NULL,  (CFStringRef)@"&=-#", kCFStringEncodingUTF8);
+=======
+>>>>>>> 256d26e0b1e7088e492876445430fd18d1170eaf
 	[hatenaClient post:_url comment:comment];
 }
 
