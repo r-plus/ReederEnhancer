@@ -17,8 +17,11 @@ Follow me Twitter (@wa_kinchan)
 Enjoy!!
 
 # Change Log
+version 1.5.6:
+New: "Use HTML" option.
+
 version 1.5.5:
-New: Caret move to top option.
+New: "Caret move to top" option.
 
 version 1.5.1 - 1.5.4:
 Some bug fixes.
