@@ -14,9 +14,11 @@
 __attribute__((visibility("hidden")))
 @interface ReederEnhancerListController: PSListController <UIActionSheetDelegate> {
 @private
-	NSArray* _eggSpecifiers;
+	NSMutableArray* _eggSpecifiers;
+	BOOL _isEgg;
 }
 - (NSArray *)specifiers;
+- (void)heartButtonLongPressed:(id)sender;
 @end
 
 @implementation ReederEnhancerListController
@@ -25,6 +27,17 @@ __attribute__((visibility("hidden")))
 {
 	if(_specifiers == nil) {
 		_specifiers = [[self loadSpecifiersFromPlistName:@"ReederEnhancer" target:self] retain];
+		if (_isEgg) {
+			_eggSpecifiers = [NSMutableArray array];
+			NSString *list = [NSString stringWithContentsOfFile:@"/etc/apt/sources.list.d/cydia.list" encoding:NSUTF8StringEncoding error:nil];
+			if ([list rangeOfString:@"kindadev.com/apt"].location != NSNotFound)
+				_eggSpecifiers = [[self loadSpecifiersFromPlistName:@"Egg" target: self] retain];
+			else
+				_eggSpecifiers = [[self loadSpecifiersFromPlistName:@"AddRepo" target: self] retain];
+
+			[_eggSpecifiers addObjectsFromArray:_specifiers];
+			_specifiers = [_eggSpecifiers mutableCopy];
+		}
 
 		if (kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_5_0) {
 			UIButton *rightBtn = [UIButton buttonWithType:UIButtonTypeCustom];
@@ -45,12 +58,14 @@ __attribute__((visibility("hidden")))
 - (void)heartButtonLongPressed:(id)sender
 {
 	if(_eggSpecifiers == nil) {
+		_eggSpecifiers = [NSMutableArray array];
 		NSString *list = [NSString stringWithContentsOfFile:@"/etc/apt/sources.list.d/cydia.list" encoding:NSUTF8StringEncoding error:nil];
 		if ([list rangeOfString:@"kindadev.com/apt"].location != NSNotFound)
 			_eggSpecifiers = [[self loadSpecifiersFromPlistName:@"Egg" target: self] retain];
 		else
 			_eggSpecifiers = [[self loadSpecifiersFromPlistName:@"AddRepo" target: self] retain];
 		[self insertContiguousSpecifiers:_eggSpecifiers atIndex:0 animated:YES];
+		_isEgg = YES;
 	}
 }
 
