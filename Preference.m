@@ -18,7 +18,6 @@ __attribute__((visibility("hidden")))
 	BOOL _isEgg;
 }
 - (NSArray *)specifiers;
-- (void)heartButtonLongPressed:(id)sender;
 @end
 
 @implementation ReederEnhancerListController
