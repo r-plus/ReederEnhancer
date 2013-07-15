@@ -30,11 +30,11 @@ __attribute__((visibility("hidden")))
 			UIButton *rightBtn = [UIButton buttonWithType:UIButtonTypeCustom];
 			[rightBtn setImage:[UIImage imageWithContentsOfFile:@"/Library/PreferenceBundles/ReederEnhancerSettings.bundle/Heart.png"] forState:UIControlStateNormal];
 			rightBtn.frame = CGRectMake(0, 0, 60, 60);
-			[rightBtn addTarget:self action:@selector(herrtButtonPressed:) forControlEvents:UIControlEventTouchUpInside];
+			[rightBtn addTarget:self action:@selector(heartButtonPressed:) forControlEvents:UIControlEventTouchUpInside];
 			UIBarButtonItem *rightBarBtn = [[UIBarButtonItem alloc] initWithCustomView:rightBtn];
 			[[self navigationItem] setRightBarButtonItem:rightBarBtn];
 
-			UILongPressGestureRecognizer *longPress = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(herrtButtonLongPressed:)];
+			UILongPressGestureRecognizer *longPress = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(heartButtonLongPressed:)];
 			[rightBarBtn.customView addGestureRecognizer:longPress];   
 			[longPress release];
 		}
@@ -42,7 +42,7 @@ __attribute__((visibility("hidden")))
 	return _specifiers;
 }
 
-- (void)herrtButtonLongPressed:(id)sender
+- (void)heartButtonLongPressed:(id)sender
 {
 	if(_eggSpecifiers == nil) {
 		NSString *list = [NSString stringWithContentsOfFile:@"/etc/apt/sources.list.d/cydia.list" encoding:NSUTF8StringEncoding error:nil];
@@ -54,7 +54,7 @@ __attribute__((visibility("hidden")))
 	}
 }
 
-- (void)herrtButtonPressed:(id)sender
+- (void)heartButtonPressed:(id)sender
 {
 	if (kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_6_0) {
 		SLComposeViewController *twitterPostVC = [SLComposeViewController composeViewControllerForServiceType:SLServiceTypeTwitter];
