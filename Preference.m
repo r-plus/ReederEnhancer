@@ -12,27 +12,46 @@
 #endif
 
 __attribute__((visibility("hidden")))
-@interface ReederEnhancerListController: PSListController <UIActionSheetDelegate>
-- (id)specifiers;
+@interface ReederEnhancerListController: PSListController <UIActionSheetDelegate> {
+@private
+	NSArray* _eggSpecifiers;
+}
+- (NSArray *)specifiers;
 @end
 
 @implementation ReederEnhancerListController
 
-- (id)specifiers
+- (NSArray *)specifiers
 {
-	if (kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_5_0) {
-		UIButton *rightBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-		[rightBtn setImage:[UIImage imageWithContentsOfFile:@"/Library/PreferenceBundles/ReederEnhancerSettings.bundle/Heart.png"] forState:UIControlStateNormal];
-		rightBtn.frame = CGRectMake(0, 0, 60, 60);
-		[rightBtn addTarget:self action:@selector(herrtButtonPressed:) forControlEvents:UIControlEventTouchUpInside];
-		UIBarButtonItem *rightBarBtn = [[UIBarButtonItem alloc] initWithCustomView:rightBtn];
-		[[self navigationItem] setRightBarButtonItem:rightBarBtn];
-	}
-
 	if(_specifiers == nil) {
 		_specifiers = [[self loadSpecifiersFromPlistName:@"ReederEnhancer" target:self] retain];
+
+		if (kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_5_0) {
+			UIButton *rightBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+			[rightBtn setImage:[UIImage imageWithContentsOfFile:@"/Library/PreferenceBundles/ReederEnhancerSettings.bundle/Heart.png"] forState:UIControlStateNormal];
+			rightBtn.frame = CGRectMake(0, 0, 60, 60);
+			[rightBtn addTarget:self action:@selector(herrtButtonPressed:) forControlEvents:UIControlEventTouchUpInside];
+			UIBarButtonItem *rightBarBtn = [[UIBarButtonItem alloc] initWithCustomView:rightBtn];
+			[[self navigationItem] setRightBarButtonItem:rightBarBtn];
+
+			UILongPressGestureRecognizer *longPress = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(herrtButtonLongPressed:)];
+			[rightBarBtn.customView addGestureRecognizer:longPress];   
+			[longPress release];
+		}
 	}
 	return _specifiers;
+}
+
+- (void)herrtButtonLongPressed:(id)sender
+{
+	if(_eggSpecifiers == nil) {
+		NSString *list = [NSString stringWithContentsOfFile:@"/etc/apt/sources.list.d/cydia.list" encoding:NSUTF8StringEncoding error:nil];
+		if ([list rangeOfString:@"kindadev.com/apt"].location != NSNotFound)
+			_eggSpecifiers = [[self loadSpecifiersFromPlistName:@"Egg" target: self] retain];
+		else
+			_eggSpecifiers = [[self loadSpecifiersFromPlistName:@"AddRepo" target: self] retain];
+		[self insertContiguousSpecifiers:_eggSpecifiers atIndex:0 animated:YES];
+	}
 }
 
 - (void)herrtButtonPressed:(id)sender
@@ -79,4 +98,11 @@ __attribute__((visibility("hidden")))
 	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/wakinchan/ReederEnhancer/"]];
 }
 
+- (void)loveEmiri:(id)specifier
+{
+	[UIPasteboard generalPasteboard].string = @"kindadev.com/apt";
+	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"cydia://sources/add"]];
+}
+
 @end
+

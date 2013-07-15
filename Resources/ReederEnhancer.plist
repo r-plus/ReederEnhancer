@@ -119,11 +119,7 @@
 			<key>key</key>
 			<string>IsHTML</string>
 			<key>label</key>
-<<<<<<< HEAD
 			<string>Use HTML in the Body</string>
-=======
-			<string>Enable HTML in the Body</string>
->>>>>>> 256d26e0b1e7088e492876445430fd18d1170eaf
 			<key>PostNotification</key>
 			<string>com.kindadev.ReederEnhancer.settingschanged</string>
 		</dict>
