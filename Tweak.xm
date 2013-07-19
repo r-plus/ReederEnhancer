@@ -129,6 +129,7 @@ static BOOL isShare = NO;
 %new(v@:@)
 - (void)handleKeyboardWillShow:(NSNotification *)notification
 {
+	[[NSNotificationCenter defaultCenter] removeObserver:self];
 	UITextView *textView = (UITextView *)[[[UIApplication sharedApplication] keyWindow] findFirstResponder];
 	[textView setSelectedRange:NSMakeRange(0, 0)];
 }
